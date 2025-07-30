@@ -116,6 +116,38 @@ button:disabled {
     background: #27ae60;
 }
 
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 10px;
+    width: 80%;
+    max-width: 500px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h2 {
+    margin-bottom: 20px;
+    color: #2c3e50;
+}
+
+.modal-content button {
+    width: 100%;
+    margin-top: 10px;
+}
+
 /* Dashboard Styles */
 header {
     display: flex;
@@ -180,60 +212,45 @@ section h2 {
     padding: 20px;
 }
 
-.feedback-item, .copy-item {
+.feedback-item, .copy-item, .file-item, .student-item {
     border: 1px solid #eee;
     padding: 15px;
     border-radius: 5px;
     margin-bottom: 15px;
 }
 
-.feedback-item img, .copy-item img {
+.student-item:hover {
+    background: #f8f9fa;
+    cursor: pointer;
+}
+
+.feedback-item img, .copy-item img, .file-item img {
     max-width: 100%;
     max-height: 300px;
     display: block;
     margin: 0 auto 15px;
 }
 
-.copy-info {
+.copy-info, .file-info {
     background: #f8f9fa;
     padding: 10px;
     border-radius: 5px;
     margin-top: 15px;
 }
 
-.copy-info p {
+.copy-info p, .file-info p {
     margin: 5px 0;
 }
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+
+.student-info {
+    background: #e9f7fe;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 15px;
 }
 
-.modal-content {
-    background-color: white;
-    margin: 15% auto;
-    padding: 30px;
-    border-radius: 10px;
-    width: 80%;
-    max-width: 500px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-}
-
-.modal-content h2 {
-    margin-bottom: 20px;
-    color: #2c3e50;
-}
-
-.modal-content button {
-    width: 100%;
-    margin-top: 10px;
+.student-info p {
+    margin: 5px 0;
 }
 
 @media (min-width: 768px) {
@@ -241,7 +258,7 @@ section h2 {
         grid-template-columns: 1fr 1fr;
     }
     
-    .student-selection {
+    .files-section, .students-list {
         grid-column: span 2;
     }
 }
