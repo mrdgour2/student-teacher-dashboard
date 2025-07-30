@@ -42,6 +42,18 @@
         </div>
     </div>
 
+    <!-- Modal for Student Name -->
+    <div id="nameModal" class="modal">
+        <div class="modal-content">
+            <h2>Enter Your Name</h2>
+            <div class="input-group">
+                <label for="studentName">Full Name</label>
+                <input type="text" id="studentName" placeholder="Enter your full name" required>
+            </div>
+            <button id="saveNameBtn">Save</button>
+        </div>
+    </div>
+
     <script>
         // Function to show forms
         function showForm(type) {
@@ -77,10 +89,49 @@
             e.preventDefault();
             const mobile = document.getElementById('mobile').value;
             if (mobile) {
+                // Check if we have student info for this mobile
+                const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
+                
+                if (studentInfo[mobile]) {
+                    // We have the student info, proceed to login
+                    localStorage.setItem('currentUser', JSON.stringify({
+                        type: 'student',
+                        mobile: mobile
+                    }));
+                    window.location.href = 'student.html';
+                } else {
+                    // Show modal to enter name
+                    document.getElementById('nameModal').style.display = 'block';
+                    // Store the mobile temporarily
+                    localStorage.setItem('tempMobile', mobile);
+                }
+            }
+        });
+        
+        // Save student name
+        document.getElementById('saveNameBtn').addEventListener('click', () => {
+            const name = document.getElementById('studentName').value;
+            const mobile = localStorage.getItem('tempMobile');
+            
+            if (name && mobile) {
+                // Save student info
+                const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
+                studentInfo[mobile] = { name: name, mobile: mobile };
+                localStorage.setItem('studentInfo', JSON.stringify(studentInfo));
+                
+                // Now login
                 localStorage.setItem('currentUser', JSON.stringify({
                     type: 'student',
                     mobile: mobile
                 }));
+                
+                // Clear temp
+                localStorage.removeItem('tempMobile');
+                
+                // Hide modal
+                document.getElementById('nameModal').style.display = 'none';
+                
+                // Redirect
                 window.location.href = 'student.html';
             }
         });
