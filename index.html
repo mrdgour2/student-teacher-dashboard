@@ -3,155 +3,265 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login Portal</title>
+    <title>Student Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 </head>
 <body>
     <div class="container">
-        <div class="login-form">
-            <h1>Login Portal</h1>
-            
-            <div class="role-selector">
-                <button id="studentBtn" class="active">Student</button>
-                <button id="teacherBtn">Teacher</button>
+        <header>
+            <h1>Student Dashboard</h1>
+            <div class="user-info">
+                <span id="userInfo"></span>
+                <button id="logoutBtn">Logout</button>
             </div>
+        </header>
+        
+        <main>
+            <section class="upload-section">
+                <h2>Upload Test Copy</h2>
+                <div class="upload-area">
+                    <input type="file" id="fileInput" accept="image/*,.pdf" hidden>
+                    <label for="fileInput" class="upload-btn">Choose File</label>
+                    <span id="fileName">No file selected</span>
+                </div>
+                <button id="uploadBtn" class="primary-btn">Upload</button>
+            </section>
             
-            <!-- Student Login Form -->
-            <form id="studentForm" class="form active">
-                <h2>Student Login</h2>
-                <div class="input-group">
-                    <label for="mobile">Mobile Number</label>
-                    <input type="tel" id="mobile" placeholder="Enter your mobile number" required>
+            <section class="files-section">
+                <h2>My Uploaded Files</h2>
+                <div id="filesContainer">
+                    <p class="placeholder">Loading files...</p>
                 </div>
-                <button type="submit">Login</button>
-            </form>
+            </section>
             
-            <!-- Teacher Login Form -->
-            <form id="teacherForm" class="form">
-                <h2>Teacher Login</h2>
-                <div class="input-group">
-                    <label for="username">Username</label>
-                    <input type="text" id="username" placeholder="Enter username" required>
+            <section class="feedback-section">
+                <h2>Teacher's Feedback</h2>
+                <div id="feedbackContainer">
+                    <p class="placeholder">Loading feedback...</p>
                 </div>
-                <div class="input-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter password" required>
-                </div>
-                <button type="submit">Login</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal for Student Name -->
-    <div id="nameModal" class="modal">
-        <div class="modal-content">
-            <h2>Enter Your Name</h2>
-            <div class="input-group">
-                <label for="studentName">Full Name</label>
-                <input type="text" id="studentName" placeholder="Enter your full name" required>
-            </div>
-            <button id="saveNameBtn">Save</button>
-        </div>
+            </section>
+        </main>
     </div>
 
     <script>
-        // Function to show forms
-        function showForm(type) {
-            const studentBtn = document.getElementById('studentBtn');
-            const teacherBtn = document.getElementById('teacherBtn');
-            const studentForm = document.getElementById('studentForm');
-            const teacherForm = document.getElementById('teacherForm');
-            
-            if (type === 'student') {
-                studentBtn.classList.add('active');
-                teacherBtn.classList.remove('active');
-                studentForm.classList.add('active');
-                teacherForm.classList.remove('active');
-            } else {
-                teacherBtn.classList.add('active');
-                studentBtn.classList.remove('active');
-                teacherForm.classList.add('active');
-                studentForm.classList.remove('active');
+        // Initialize Firebase - REPLACE WITH YOUR CONFIG
+         const firebaseConfig = {
+    apiKey: "AIzaSyBQ0CjOoBCqnI4T-bNV29oUPtxpdNq1gdI",
+    authDomain: "lawclassescopy.firebaseapp.com",
+    projectId: "lawclassescopy",
+    storageBucket: "lawclassescopy.firebasestorage.app",
+    messagingSenderId: "237369982975",
+    appId: "1:237369982975:web:2ce13f052f87ba545231ca",
+    measurementId: "G-7E46DDHYKY"
+  };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.type !== 'student') {
+                window.location.href = 'index.html';
             }
-        }
-        
-        // Role switching
-        document.getElementById('studentBtn').addEventListener('click', () => {
-            showForm('student');
-        });
-        
-        document.getElementById('teacherBtn').addEventListener('click', () => {
-            showForm('teacher');
-        });
-        
-        // Student login
-        document.getElementById('studentForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const mobile = document.getElementById('mobile').value;
-            if (mobile) {
-                // Check if we have student info for this mobile
-                const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
-                
-                if (studentInfo[mobile]) {
-                    // We have the student info, proceed to login
-                    localStorage.setItem('currentUser', JSON.stringify({
-                        type: 'student',
-                        mobile: mobile
-                    }));
-                    window.location.href = 'student.html';
-                } else {
-                    // Show modal to enter name
-                    document.getElementById('nameModal').style.display = 'block';
-                    // Store the mobile temporarily
-                    localStorage.setItem('tempMobile', mobile);
+            
+            // Get student info from Firebase
+            const studentRef = database.ref(`studentInfo/${currentUser.mobile}`);
+            studentRef.once('value').then(snapshot => {
+                const student = snapshot.val();
+                if (!student) {
+                    // Student info not found, redirect to login
+                    alert('Student information not found. Please login again.');
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'index.html';
+                    return;
                 }
-            }
-        });
-        
-        // Save student name
-        document.getElementById('saveNameBtn').addEventListener('click', () => {
-            const name = document.getElementById('studentName').value;
-            const mobile = localStorage.getItem('tempMobile');
+                
+                // Display user info
+                document.getElementById('userInfo').textContent = `Name: ${student.name}, Mobile: ${currentUser.mobile}`;
+                
+                // Load files and feedback
+                loadFiles();
+                loadFeedback();
+                
+                // Set up real-time listeners
+                setupRealtimeListeners();
+            }).catch(error => {
+                console.error('Error loading student info:', error);
+                alert('Error loading student information. Please try again.');
+            });
             
-            if (name && mobile) {
-                // Save student info
-                const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
-                studentInfo[mobile] = { name: name, mobile: mobile };
-                localStorage.setItem('studentInfo', JSON.stringify(studentInfo));
-                
-                // Now login
-                localStorage.setItem('currentUser', JSON.stringify({
-                    type: 'student',
-                    mobile: mobile
-                }));
-                
-                // Clear temp
-                localStorage.removeItem('tempMobile');
-                
-                // Hide modal
-                document.getElementById('nameModal').style.display = 'none';
-                
-                // Redirect
-                window.location.href = 'student.html';
-            }
-        });
-        
-        // Teacher login
-        document.getElementById('teacherForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+            // File selection
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const uploadBtn = document.getElementById('uploadBtn');
             
-            // Fixed credentials (in real app, use proper authentication)
-            if (username === 'teacher' && password === 'password123') {
-                localStorage.setItem('currentUser', JSON.stringify({
-                    type: 'teacher',
-                    username: username
-                }));
-                window.location.href = 'teacher.html';
-            } else {
-                alert('Invalid credentials! Use username: teacher, password: password123');
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    fileName.textContent = e.target.files[0].name;
+                } else {
+                    fileName.textContent = 'No file selected';
+                }
+            });
+            
+            // Upload file
+            uploadBtn.addEventListener('click', () => {
+                if (fileInput.files.length === 0) {
+                    alert('Please select a file first');
+                    return;
+                }
+                
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        // Create a reference to the student's files in Firebase
+                        const studentFilesRef = database.ref(`studentCopies/${currentUser.mobile}`);
+                        
+                        // Get current files
+                        studentFilesRef.once('value', (snapshot) => {
+                            const files = snapshot.val() || [];
+                            
+                            // Add the new file
+                            files.push({
+                                fileName: file.name,
+                                data: e.target.result,
+                                timestamp: new Date().toISOString()
+                            });
+                            
+                            // Save to Firebase
+                            studentFilesRef.set(files).then(() => {
+                                alert('File uploaded successfully!');
+                                fileName.textContent = 'No file selected';
+                                fileInput.value = '';
+                            }).catch(error => {
+                                console.error('Error saving to Firebase:', error);
+                                alert('Error uploading file. Please try again.');
+                            });
+                        });
+                    } catch (error) {
+                        console.error('Error uploading file:', error);
+                        alert('Error uploading file. Please try again.');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    console.error('Error reading file');
+                    alert('Error reading file. Please try again.');
+                };
+                
+                reader.readAsDataURL(file);
+            });
+            
+            // Load student's files
+            function loadFiles() {
+                const studentFilesRef = database.ref(`studentCopies/${currentUser.mobile}`);
+                const container = document.getElementById('filesContainer');
+                
+                container.innerHTML = '<p class="placeholder">Loading files...</p>';
+                
+                studentFilesRef.once('value', (snapshot) => {
+                    const files = snapshot.val() || [];
+                    container.innerHTML = '';
+                    
+                    if (files.length === 0) {
+                        container.innerHTML = '<p class="placeholder">No files uploaded yet</p>';
+                    } else {
+                        files.forEach(file => {
+                            const fileEl = document.createElement('div');
+                            fileEl.className = 'file-item';
+                            
+                            if (file.data.startsWith('data:image')) {
+                                const img = document.createElement('img');
+                                img.src = file.data;
+                                fileEl.appendChild(img);
+                            } else {
+                                const link = document.createElement('a');
+                                link.href = file.data;
+                                link.download = file.fileName;
+                                link.textContent = `Download: ${file.fileName}`;
+                                fileEl.appendChild(link);
+                            }
+                            
+                            const info = document.createElement('div');
+                            info.className = 'file-info';
+                            info.innerHTML = `
+                                <p><strong>File:</strong> ${file.fileName}</p>
+                                <p><strong>Uploaded:</strong> ${new Date(file.timestamp).toLocaleString()}</p>
+                            `;
+                            fileEl.appendChild(info);
+                            
+                            container.appendChild(fileEl);
+                        });
+                    }
+                }).catch(error => {
+                    console.error('Error loading files:', error);
+                    container.innerHTML = '<p class="placeholder">Error loading files</p>';
+                });
             }
+            
+            // Load feedback
+            function loadFeedback() {
+                const feedbackRef = database.ref(`teacherFeedbacks/${currentUser.mobile}`);
+                const container = document.getElementById('feedbackContainer');
+                
+                container.innerHTML = '<p class="placeholder">Loading feedback...</p>';
+                
+                feedbackRef.once('value', (snapshot) => {
+                    const feedback = snapshot.val();
+                    container.innerHTML = '';
+                    
+                    if (feedback) {
+                        const feedbackEl = document.createElement('div');
+                        feedbackEl.className = 'feedback-item';
+                        
+                        if (feedback.data.startsWith('data:image')) {
+                            const img = document.createElement('img');
+                            img.src = feedback.data;
+                            feedbackEl.appendChild(img);
+                        } else {
+                            const link = document.createElement('a');
+                            link.href = feedback.data;
+                            link.download = feedback.fileName;
+                            link.textContent = `Download: ${feedback.fileName}`;
+                            feedbackEl.appendChild(link);
+                        }
+                        
+                        const date = document.createElement('p');
+                        date.textContent = `Received: ${new Date(feedback.timestamp).toLocaleString()}`;
+                        feedbackEl.appendChild(date);
+                        
+                        container.appendChild(feedbackEl);
+                    } else {
+                        container.innerHTML = '<p class="placeholder">No feedback available yet</p>';
+                    }
+                }).catch(error => {
+                    console.error('Error loading feedback:', error);
+                    container.innerHTML = '<p class="placeholder">Error loading feedback</p>';
+                });
+            }
+            
+            // Set up real-time listeners for automatic updates
+            function setupRealtimeListeners() {
+                // Listen for file updates
+                database.ref(`studentCopies/${currentUser.mobile}`).on('value', (snapshot) => {
+                    loadFiles();
+                });
+                
+                // Listen for feedback updates
+                database.ref(`teacherFeedbacks/${currentUser.mobile}`).on('value', (snapshot) => {
+                    loadFeedback();
+                });
+            }
+            
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
+            });
         });
     </script>
 </body>
