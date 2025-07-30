@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Portal</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-form">
+            <h1>Login Portal</h1>
+            
+            <div class="role-selector">
+                <button id="studentBtn" class="active">Student</button>
+                <button id="teacherBtn">Teacher</button>
+            </div>
+            
+            <!-- Student Login Form -->
+            <form id="studentForm" class="form active">
+                <h2>Student Login</h2>
+                <div class="input-group">
+                    <label for="mobile">Mobile Number</label>
+                    <input type="tel" id="mobile" placeholder="Enter your mobile number" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+            
+            <!-- Teacher Login Form -->
+            <form id="teacherForm" class="form">
+                <h2>Teacher Login</h2>
+                <div class="input-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" placeholder="Enter username" required>
+                </div>
+                <div class="input-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" placeholder="Enter password" required>
+                </div>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Function to show forms
+        function showForm(type) {
+            const studentBtn = document.getElementById('studentBtn');
+            const teacherBtn = document.getElementById('teacherBtn');
+            const studentForm = document.getElementById('studentForm');
+            const teacherForm = document.getElementById('teacherForm');
+            
+            if (type === 'student') {
+                studentBtn.classList.add('active');
+                teacherBtn.classList.remove('active');
+                studentForm.classList.add('active');
+                teacherForm.classList.remove('active');
+            } else {
+                teacherBtn.classList.add('active');
+                studentBtn.classList.remove('active');
+                teacherForm.classList.add('active');
+                studentForm.classList.remove('active');
+            }
+        }
+        
+        // Role switching
+        document.getElementById('studentBtn').addEventListener('click', () => {
+            showForm('student');
+        });
+        
+        document.getElementById('teacherBtn').addEventListener('click', () => {
+            showForm('teacher');
+        });
+        
+        // Student login
+        document.getElementById('studentForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const mobile = document.getElementById('mobile').value;
+            if (mobile) {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    type: 'student',
+                    mobile: mobile
+                }));
+                window.location.href = 'student.html';
+            }
+        });
+        
+        // Teacher login
+        document.getElementById('teacherForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Fixed credentials (in real app, use proper authentication)
+            if (username === 'teacher' && password === 'password123') {
+                localStorage.setItem('currentUser', JSON.stringify({
+                    type: 'teacher',
+                    username: username
+                }));
+                window.location.href = 'teacher.html';
+            } else {
+                alert('Invalid credentials! Use username: teacher, password: password123');
+            }
+        });
+    </script>
+</body>
+</html>
