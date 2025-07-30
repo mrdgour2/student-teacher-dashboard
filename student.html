@@ -44,156 +44,179 @@
     </div>
 
     <script>
-        // Check if user is logged in
-        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        if (!currentUser || currentUser.type !== 'student') {
-            window.location.href = 'index.html';
-        }
-        
-        // Get student info
-        const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
-        const student = studentInfo[currentUser.mobile];
-        
-        // Display user info
-        document.getElementById('userInfo').textContent = `Name: ${student.name}, Mobile: ${currentUser.mobile}`;
-        
-        // File selection
-        const fileInput = document.getElementById('fileInput');
-        const fileName = document.getElementById('fileName');
-        
-        fileInput.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                fileName.textContent = e.target.files[0].name;
-            } else {
-                fileName.textContent = 'No file selected';
-            }
-        });
-        
-        // Upload file
-        document.getElementById('uploadBtn').addEventListener('click', () => {
-            if (fileInput.files.length === 0) {
-                alert('Please select a file first');
-                return;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.type !== 'student') {
+                window.location.href = 'index.html';
             }
             
-            const file = fileInput.files[0];
-            const reader = new FileReader();
+            // Get student info
+            const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
+            const student = studentInfo[currentUser.mobile];
             
-            reader.onload = function(e) {
-                // Save to localStorage
-                const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
-                
-                // If this student doesn't have an array, create one
-                if (!studentCopies[currentUser.mobile]) {
-                    studentCopies[currentUser.mobile] = [];
-                }
-                
-                // Add the new file
-                studentCopies[currentUser.mobile].push({
-                    fileName: file.name,
-                    data: e.target.result,
-                    timestamp: new Date().toISOString()
-                });
-                
-                localStorage.setItem('studentCopies', JSON.stringify(studentCopies));
-                
-                alert('File uploaded successfully!');
-                fileName.textContent = 'No file selected';
-                fileInput.value = '';
-                
-                // Refresh the files list
-                loadFiles();
-            };
+            // Display user info
+            document.getElementById('userInfo').textContent = `Name: ${student.name}, Mobile: ${currentUser.mobile}`;
             
-            reader.readAsDataURL(file);
-        });
-        
-        // Load student's files
-        function loadFiles() {
-            const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
-            const files = studentCopies[currentUser.mobile] || [];
+            // File selection
+            const fileInput = document.getElementById('fileInput');
+            const fileName = document.getElementById('fileName');
+            const uploadBtn = document.getElementById('uploadBtn');
             
-            const container = document.getElementById('filesContainer');
-            container.innerHTML = '';
-            
-            if (files.length === 0) {
-                container.innerHTML = '<p class="placeholder">No files uploaded yet</p>';
-            } else {
-                files.forEach(file => {
-                    const fileEl = document.createElement('div');
-                    fileEl.className = 'file-item';
-                    
-                    if (file.data.startsWith('data:image')) {
-                        const img = document.createElement('img');
-                        img.src = file.data;
-                        fileEl.appendChild(img);
-                    } else {
-                        const link = document.createElement('a');
-                        link.href = file.data;
-                        link.download = file.fileName;
-                        link.textContent = `Download: ${file.fileName}`;
-                        fileEl.appendChild(link);
-                    }
-                    
-                    const info = document.createElement('div');
-                    info.className = 'file-info';
-                    info.innerHTML = `
-                        <p><strong>File:</strong> ${file.fileName}</p>
-                        <p><strong>Uploaded:</strong> ${new Date(file.timestamp).toLocaleString()}</p>
-                    `;
-                    fileEl.appendChild(info);
-                    
-                    container.appendChild(fileEl);
-                });
-            }
-        }
-        
-        // Load feedback
-        function loadFeedback() {
-            const feedbacks = JSON.parse(localStorage.getItem('teacherFeedbacks')) || {};
-            const feedback = feedbacks[currentUser.mobile];
-            
-            const container = document.getElementById('feedbackContainer');
-            container.innerHTML = '';
-            
-            if (feedback) {
-                const feedbackEl = document.createElement('div');
-                feedbackEl.className = 'feedback-item';
-                
-                if (feedback.data.startsWith('data:image')) {
-                    const img = document.createElement('img');
-                    img.src = feedback.data;
-                    feedbackEl.appendChild(img);
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    fileName.textContent = e.target.files[0].name;
                 } else {
-                    const link = document.createElement('a');
-                    link.href = feedback.data;
-                    link.download = feedback.fileName;
-                    link.textContent = `Download: ${feedback.fileName}`;
-                    feedbackEl.appendChild(link);
+                    fileName.textContent = 'No file selected';
+                }
+            });
+            
+            // Upload file
+            uploadBtn.addEventListener('click', () => {
+                if (fileInput.files.length === 0) {
+                    alert('Please select a file first');
+                    return;
                 }
                 
-                const date = document.createElement('p');
-                date.textContent = `Received: ${new Date(feedback.timestamp).toLocaleString()}`;
-                feedbackEl.appendChild(date);
+                const file = fileInput.files[0];
+                const reader = new FileReader();
                 
-                container.appendChild(feedbackEl);
-            } else {
-                container.innerHTML = '<p class="placeholder">No feedback available yet</p>';
+                reader.onload = function(e) {
+                    try {
+                        // Save to localStorage
+                        const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
+                        
+                        // If this student doesn't have an array, create one
+                        if (!studentCopies[currentUser.mobile]) {
+                            studentCopies[currentUser.mobile] = [];
+                        }
+                        
+                        // Add the new file
+                        studentCopies[currentUser.mobile].push({
+                            fileName: file.name,
+                            data: e.target.result,
+                            timestamp: new Date().toISOString()
+                        });
+                        
+                        localStorage.setItem('studentCopies', JSON.stringify(studentCopies));
+                        
+                        alert('File uploaded successfully!');
+                        fileName.textContent = 'No file selected';
+                        fileInput.value = '';
+                        
+                        // Refresh the files list
+                        loadFiles();
+                    } catch (error) {
+                        console.error('Error saving file:', error);
+                        alert('Error uploading file. Please try again.');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    console.error('Error reading file');
+                    alert('Error reading file. Please try again.');
+                };
+                
+                reader.readAsDataURL(file);
+            });
+            
+            // Load student's files
+            function loadFiles() {
+                try {
+                    const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
+                    const files = studentCopies[currentUser.mobile] || [];
+                    
+                    const container = document.getElementById('filesContainer');
+                    container.innerHTML = '';
+                    
+                    if (files.length === 0) {
+                        container.innerHTML = '<p class="placeholder">No files uploaded yet</p>';
+                    } else {
+                        files.forEach(file => {
+                            const fileEl = document.createElement('div');
+                            fileEl.className = 'file-item';
+                            
+                            if (file.data.startsWith('data:image')) {
+                                const img = document.createElement('img');
+                                img.src = file.data;
+                                fileEl.appendChild(img);
+                            } else {
+                                const link = document.createElement('a');
+                                link.href = file.data;
+                                link.download = file.fileName;
+                                link.textContent = `Download: ${file.fileName}`;
+                                fileEl.appendChild(link);
+                            }
+                            
+                            const info = document.createElement('div');
+                            info.className = 'file-info';
+                            info.innerHTML = `
+                                <p><strong>File:</strong> ${file.fileName}</p>
+                                <p><strong>Uploaded:</strong> ${new Date(file.timestamp).toLocaleString()}</p>
+                            `;
+                            fileEl.appendChild(info);
+                            
+                            container.appendChild(fileEl);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading files:', error);
+                    document.getElementById('filesContainer').innerHTML = '<p class="placeholder">Error loading files</p>';
+                }
             }
-        }
-        
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.removeItem('currentUser');
-            window.location.href = 'index.html';
+            
+            // Load feedback
+            function loadFeedback() {
+                try {
+                    const feedbacks = JSON.parse(localStorage.getItem('teacherFeedbacks')) || {};
+                    const feedback = feedbacks[currentUser.mobile];
+                    
+                    const container = document.getElementById('feedbackContainer');
+                    container.innerHTML = '';
+                    
+                    if (feedback) {
+                        const feedbackEl = document.createElement('div');
+                        feedbackEl.className = 'feedback-item';
+                        
+                        if (feedback.data.startsWith('data:image')) {
+                            const img = document.createElement('img');
+                            img.src = feedback.data;
+                            feedbackEl.appendChild(img);
+                        } else {
+                            const link = document.createElement('a');
+                            link.href = feedback.data;
+                            link.download = feedback.fileName;
+                            link.textContent = `Download: ${feedback.fileName}`;
+                            feedbackEl.appendChild(link);
+                        }
+                        
+                        const date = document.createElement('p');
+                        date.textContent = `Received: ${new Date(feedback.timestamp).toLocaleString()}`;
+                        feedbackEl.appendChild(date);
+                        
+                        container.appendChild(feedbackEl);
+                    } else {
+                        container.innerHTML = '<p class="placeholder">No feedback available yet</p>';
+                    }
+                } catch (error) {
+                    console.error('Error loading feedback:', error);
+                    document.getElementById('feedbackContainer').innerHTML = '<p class="placeholder">Error loading feedback</p>';
+                }
+            }
+            
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
+            });
+            
+            // Initial load
+            loadFiles();
+            loadFeedback();
+            
+            // Check for new feedback every 5 seconds
+            setInterval(loadFeedback, 5000);
         });
-        
-        // Initial load
-        loadFiles();
-        loadFeedback();
-        
-        // Check for new feedback every 5 seconds
-        setInterval(loadFeedback, 5000);
     </script>
 </body>
 </html>
