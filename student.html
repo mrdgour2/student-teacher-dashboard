@@ -11,7 +11,7 @@
         <header>
             <h1>Student Dashboard</h1>
             <div class="user-info">
-                <span id="userMobile"></span>
+                <span id="userInfo"></span>
                 <button id="logoutBtn">Logout</button>
             </div>
         </header>
@@ -27,6 +27,13 @@
                 <button id="uploadBtn" class="primary-btn">Upload</button>
             </section>
             
+            <section class="files-section">
+                <h2>My Uploaded Files</h2>
+                <div id="filesContainer">
+                    <p class="placeholder">No files uploaded yet</p>
+                </div>
+            </section>
+            
             <section class="feedback-section">
                 <h2>Teacher's Feedback</h2>
                 <div id="feedbackContainer">
@@ -36,7 +43,6 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
     <script>
         // Check if user is logged in
         const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -44,8 +50,12 @@
             window.location.href = 'index.html';
         }
         
-        // Display user mobile
-        document.getElementById('userMobile').textContent = `Mobile: ${currentUser.mobile}`;
+        // Get student info
+        const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
+        const student = studentInfo[currentUser.mobile];
+        
+        // Display user info
+        document.getElementById('userInfo').textContent = `Name: ${student.name}, Mobile: ${currentUser.mobile}`;
         
         // File selection
         const fileInput = document.getElementById('fileInput');
@@ -72,20 +82,71 @@
             reader.onload = function(e) {
                 // Save to localStorage
                 const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
-                studentCopies[currentUser.mobile] = {
+                
+                // If this student doesn't have an array, create one
+                if (!studentCopies[currentUser.mobile]) {
+                    studentCopies[currentUser.mobile] = [];
+                }
+                
+                // Add the new file
+                studentCopies[currentUser.mobile].push({
                     fileName: file.name,
                     data: e.target.result,
                     timestamp: new Date().toISOString()
-                };
+                });
+                
                 localStorage.setItem('studentCopies', JSON.stringify(studentCopies));
                 
                 alert('File uploaded successfully!');
                 fileName.textContent = 'No file selected';
                 fileInput.value = '';
+                
+                // Refresh the files list
+                loadFiles();
             };
             
             reader.readAsDataURL(file);
         });
+        
+        // Load student's files
+        function loadFiles() {
+            const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
+            const files = studentCopies[currentUser.mobile] || [];
+            
+            const container = document.getElementById('filesContainer');
+            container.innerHTML = '';
+            
+            if (files.length === 0) {
+                container.innerHTML = '<p class="placeholder">No files uploaded yet</p>';
+            } else {
+                files.forEach(file => {
+                    const fileEl = document.createElement('div');
+                    fileEl.className = 'file-item';
+                    
+                    if (file.data.startsWith('data:image')) {
+                        const img = document.createElement('img');
+                        img.src = file.data;
+                        fileEl.appendChild(img);
+                    } else {
+                        const link = document.createElement('a');
+                        link.href = file.data;
+                        link.download = file.fileName;
+                        link.textContent = `Download: ${file.fileName}`;
+                        fileEl.appendChild(link);
+                    }
+                    
+                    const info = document.createElement('div');
+                    info.className = 'file-info';
+                    info.innerHTML = `
+                        <p><strong>File:</strong> ${file.fileName}</p>
+                        <p><strong>Uploaded:</strong> ${new Date(file.timestamp).toLocaleString()}</p>
+                    `;
+                    fileEl.appendChild(info);
+                    
+                    container.appendChild(fileEl);
+                });
+            }
+        }
         
         // Load feedback
         function loadFeedback() {
@@ -128,6 +189,7 @@
         });
         
         // Initial load
+        loadFiles();
         loadFeedback();
         
         // Check for new feedback every 5 seconds
