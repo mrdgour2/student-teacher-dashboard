@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Student Dashboard</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
 </head>
 <body>
     <div class="container">
@@ -30,20 +33,33 @@
             <section class="files-section">
                 <h2>My Uploaded Files</h2>
                 <div id="filesContainer">
-                    <p class="placeholder">No files uploaded yet</p>
+                    <p class="placeholder">Loading files...</p>
                 </div>
             </section>
             
             <section class="feedback-section">
                 <h2>Teacher's Feedback</h2>
                 <div id="feedbackContainer">
-                    <p class="placeholder">No feedback available yet</p>
+                    <p class="placeholder">Loading feedback...</p>
                 </div>
             </section>
         </main>
     </div>
 
     <script>
+        // Initialize Firebase - REPLACE WITH YOUR CONFIG
+         const firebaseConfig = {
+    apiKey: "AIzaSyBQ0CjOoBCqnI4T-bNV29oUPtxpdNq1gdI",
+    authDomain: "lawclassescopy.firebaseapp.com",
+    projectId: "lawclassescopy",
+    storageBucket: "lawclassescopy.firebasestorage.app",
+    messagingSenderId: "237369982975",
+    appId: "1:237369982975:web:2ce13f052f87ba545231ca",
+    measurementId: "G-7E46DDHYKY"
+  };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
         document.addEventListener('DOMContentLoaded', function() {
             // Check if user is logged in
             const currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -51,12 +67,31 @@
                 window.location.href = 'index.html';
             }
             
-            // Get student info
-            const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
-            const student = studentInfo[currentUser.mobile];
-            
-            // Display user info
-            document.getElementById('userInfo').textContent = `Name: ${student.name}, Mobile: ${currentUser.mobile}`;
+            // Get student info from Firebase
+            const studentRef = database.ref(`studentInfo/${currentUser.mobile}`);
+            studentRef.once('value').then(snapshot => {
+                const student = snapshot.val();
+                if (!student) {
+                    // Student info not found, redirect to login
+                    alert('Student information not found. Please login again.');
+                    localStorage.removeItem('currentUser');
+                    window.location.href = 'index.html';
+                    return;
+                }
+                
+                // Display user info
+                document.getElementById('userInfo').textContent = `Name: ${student.name}, Mobile: ${currentUser.mobile}`;
+                
+                // Load files and feedback
+                loadFiles();
+                loadFeedback();
+                
+                // Set up real-time listeners
+                setupRealtimeListeners();
+            }).catch(error => {
+                console.error('Error loading student info:', error);
+                alert('Error loading student information. Please try again.');
+            });
             
             // File selection
             const fileInput = document.getElementById('fileInput');
@@ -83,31 +118,32 @@
                 
                 reader.onload = function(e) {
                     try {
-                        // Save to localStorage
-                        const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
+                        // Create a reference to the student's files in Firebase
+                        const studentFilesRef = database.ref(`studentCopies/${currentUser.mobile}`);
                         
-                        // If this student doesn't have an array, create one
-                        if (!studentCopies[currentUser.mobile]) {
-                            studentCopies[currentUser.mobile] = [];
-                        }
-                        
-                        // Add the new file
-                        studentCopies[currentUser.mobile].push({
-                            fileName: file.name,
-                            data: e.target.result,
-                            timestamp: new Date().toISOString()
+                        // Get current files
+                        studentFilesRef.once('value', (snapshot) => {
+                            const files = snapshot.val() || [];
+                            
+                            // Add the new file
+                            files.push({
+                                fileName: file.name,
+                                data: e.target.result,
+                                timestamp: new Date().toISOString()
+                            });
+                            
+                            // Save to Firebase
+                            studentFilesRef.set(files).then(() => {
+                                alert('File uploaded successfully!');
+                                fileName.textContent = 'No file selected';
+                                fileInput.value = '';
+                            }).catch(error => {
+                                console.error('Error saving to Firebase:', error);
+                                alert('Error uploading file. Please try again.');
+                            });
                         });
-                        
-                        localStorage.setItem('studentCopies', JSON.stringify(studentCopies));
-                        
-                        alert('File uploaded successfully!');
-                        fileName.textContent = 'No file selected';
-                        fileInput.value = '';
-                        
-                        // Refresh the files list
-                        loadFiles();
                     } catch (error) {
-                        console.error('Error saving file:', error);
+                        console.error('Error uploading file:', error);
                         alert('Error uploading file. Please try again.');
                     }
                 };
@@ -122,11 +158,13 @@
             
             // Load student's files
             function loadFiles() {
-                try {
-                    const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
-                    const files = studentCopies[currentUser.mobile] || [];
-                    
-                    const container = document.getElementById('filesContainer');
+                const studentFilesRef = database.ref(`studentCopies/${currentUser.mobile}`);
+                const container = document.getElementById('filesContainer');
+                
+                container.innerHTML = '<p class="placeholder">Loading files...</p>';
+                
+                studentFilesRef.once('value', (snapshot) => {
+                    const files = snapshot.val() || [];
                     container.innerHTML = '';
                     
                     if (files.length === 0) {
@@ -159,19 +197,21 @@
                             container.appendChild(fileEl);
                         });
                     }
-                } catch (error) {
+                }).catch(error => {
                     console.error('Error loading files:', error);
-                    document.getElementById('filesContainer').innerHTML = '<p class="placeholder">Error loading files</p>';
-                }
+                    container.innerHTML = '<p class="placeholder">Error loading files</p>';
+                });
             }
             
             // Load feedback
             function loadFeedback() {
-                try {
-                    const feedbacks = JSON.parse(localStorage.getItem('teacherFeedbacks')) || {};
-                    const feedback = feedbacks[currentUser.mobile];
-                    
-                    const container = document.getElementById('feedbackContainer');
+                const feedbackRef = database.ref(`teacherFeedbacks/${currentUser.mobile}`);
+                const container = document.getElementById('feedbackContainer');
+                
+                container.innerHTML = '<p class="placeholder">Loading feedback...</p>';
+                
+                feedbackRef.once('value', (snapshot) => {
+                    const feedback = snapshot.val();
                     container.innerHTML = '';
                     
                     if (feedback) {
@@ -198,10 +238,23 @@
                     } else {
                         container.innerHTML = '<p class="placeholder">No feedback available yet</p>';
                     }
-                } catch (error) {
+                }).catch(error => {
                     console.error('Error loading feedback:', error);
-                    document.getElementById('feedbackContainer').innerHTML = '<p class="placeholder">Error loading feedback</p>';
-                }
+                    container.innerHTML = '<p class="placeholder">Error loading feedback</p>';
+                });
+            }
+            
+            // Set up real-time listeners for automatic updates
+            function setupRealtimeListeners() {
+                // Listen for file updates
+                database.ref(`studentCopies/${currentUser.mobile}`).on('value', (snapshot) => {
+                    loadFiles();
+                });
+                
+                // Listen for feedback updates
+                database.ref(`teacherFeedbacks/${currentUser.mobile}`).on('value', (snapshot) => {
+                    loadFeedback();
+                });
             }
             
             // Logout
@@ -209,13 +262,6 @@
                 localStorage.removeItem('currentUser');
                 window.location.href = 'index.html';
             });
-            
-            // Initial load
-            loadFiles();
-            loadFeedback();
-            
-            // Check for new feedback every 5 seconds
-            setInterval(loadFeedback, 5000);
         });
     </script>
 </body>
