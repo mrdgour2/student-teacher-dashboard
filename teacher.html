@@ -53,170 +53,193 @@
     </div>
 
     <script>
-        // Check if user is logged in
-        const currentUser = JSON.parse(localStorage.getItem('currentUser'));
-        if (!currentUser || currentUser.type !== 'teacher') {
-            window.location.href = 'index.html';
-        }
-        
-        let selectedStudent = null;
-        
-        // Load students with copies
-        function loadStudentsList() {
-            const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
-            const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
-            
-            const container = document.getElementById('studentsListContainer');
-            container.innerHTML = '';
-            
-            const mobileNumbers = Object.keys(studentCopies);
-            
-            if (mobileNumbers.length === 0) {
-                container.innerHTML = '<p class="placeholder">No students have uploaded test copies yet</p>';
-            } else {
-                mobileNumbers.forEach(mobile => {
-                    const student = studentInfo[mobile];
-                    const studentEl = document.createElement('div');
-                    studentEl.className = 'student-item';
-                    studentEl.innerHTML = `
-                        <p><strong>Name:</strong> ${student ? student.name : 'Unknown'}</p>
-                        <p><strong>Mobile:</strong> ${mobile}</p>
-                        <p><strong>Files:</strong> ${studentCopies[mobile].length}</p>
-                    `;
-                    
-                    // Add click event to select this student
-                    studentEl.addEventListener('click', () => {
-                        document.getElementById('studentMobile').value = mobile;
-                        selectStudent();
-                    });
-                    
-                    container.appendChild(studentEl);
-                });
-            }
-        }
-        
-        // Select student
-        function selectStudent() {
-            const mobile = document.getElementById('studentMobile').value;
-            if (!mobile) {
-                alert('Please enter a mobile number');
-                return;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is logged in
+            const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+            if (!currentUser || currentUser.type !== 'teacher') {
+                window.location.href = 'index.html';
             }
             
-            selectedStudent = mobile;
-            loadStudentCopy();
+            let selectedStudent = null;
             
-            // Enable feedback upload
-            document.getElementById('uploadFeedbackBtn').disabled = false;
-        }
-        
-        document.getElementById('selectBtn').addEventListener('click', selectStudent);
-        
-        // Load student's copies
-        function loadStudentCopy() {
-            const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
-            const files = studentCopies[selectedStudent] || [];
-            const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
-            const student = studentInfo[selectedStudent];
-            
-            const container = document.getElementById('copyContainer');
-            container.innerHTML = '';
-            
-            if (files.length === 0) {
-                container.innerHTML = '<p class="placeholder">No test copies found for this student</p>';
-            } else {
-                // Show student info
-                const studentInfoEl = document.createElement('div');
-                studentInfoEl.className = 'student-info';
-                studentInfoEl.innerHTML = `
-                    <p><strong>Student:</strong> ${student ? student.name : 'Unknown'}</p>
-                    <p><strong>Mobile:</strong> ${selectedStudent}</p>
-                `;
-                container.appendChild(studentInfoEl);
-                
-                // Show files
-                files.forEach(file => {
-                    const fileEl = document.createElement('div');
-                    fileEl.className = 'copy-item';
+            // Load students with copies
+            function loadStudentsList() {
+                try {
+                    const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
                     
-                    if (file.data.startsWith('data:image')) {
-                        const img = document.createElement('img');
-                        img.src = file.data;
-                        fileEl.appendChild(img);
+                    const container = document.getElementById('studentsListContainer');
+                    container.innerHTML = '';
+                    
+                    const mobileNumbers = Object.keys(studentCopies);
+                    
+                    if (mobileNumbers.length === 0) {
+                        container.innerHTML = '<p class="placeholder">No students have uploaded test copies yet</p>';
                     } else {
-                        const link = document.createElement('a');
-                        link.href = file.data;
-                        link.download = file.fileName;
-                        link.textContent = `Download: ${file.fileName}`;
-                        fileEl.appendChild(link);
+                        mobileNumbers.forEach(mobile => {
+                            const student = studentInfo[mobile];
+                            const studentEl = document.createElement('div');
+                            studentEl.className = 'student-item';
+                            studentEl.innerHTML = `
+                                <p><strong>Name:</strong> ${student ? student.name : 'Unknown'}</p>
+                                <p><strong>Mobile:</strong> ${mobile}</p>
+                                <p><strong>Files:</strong> ${studentCopies[mobile].length}</p>
+                            `;
+                            
+                            // Add click event to select this student
+                            studentEl.addEventListener('click', () => {
+                                document.getElementById('studentMobile').value = mobile;
+                                selectStudent();
+                            });
+                            
+                            container.appendChild(studentEl);
+                        });
                     }
-                    
-                    const info = document.createElement('div');
-                    info.className = 'copy-info';
-                    info.innerHTML = `
-                        <p><strong>File:</strong> ${file.fileName}</p>
-                        <p><strong>Uploaded:</strong> ${new Date(file.timestamp).toLocaleString()}</p>
-                    `;
-                    fileEl.appendChild(info);
-                    
-                    container.appendChild(fileEl);
-                });
-            }
-        }
-        
-        // Feedback file selection
-        const feedbackFile = document.getElementById('feedbackFile');
-        const feedbackFileName = document.getElementById('feedbackFileName');
-        
-        feedbackFile.addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                feedbackFileName.textContent = e.target.files[0].name;
-            } else {
-                feedbackFileName.textContent = 'No file selected';
-            }
-        });
-        
-        // Upload feedback
-        document.getElementById('uploadFeedbackBtn').addEventListener('click', () => {
-            if (!selectedStudent) {
-                alert('Please select a student first');
-                return;
+                } catch (error) {
+                    console.error('Error loading students list:', error);
+                    document.getElementById('studentsListContainer').innerHTML = '<p class="placeholder">Error loading students</p>';
+                }
             }
             
-            if (feedbackFile.files.length === 0) {
-                alert('Please select a feedback file');
-                return;
-            }
-            
-            const file = feedbackFile.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = function(e) {
-                // Save to localStorage
-                const feedbacks = JSON.parse(localStorage.getItem('teacherFeedbacks')) || {};
-                feedbacks[selectedStudent] = {
-                    fileName: file.name,
-                    data: e.target.result,
-                    timestamp: new Date().toISOString()
-                };
-                localStorage.setItem('teacherFeedbacks', JSON.stringify(feedbacks));
+            // Select student
+            function selectStudent() {
+                const mobile = document.getElementById('studentMobile').value;
+                if (!mobile) {
+                    alert('Please enter a mobile number');
+                    return;
+                }
                 
-                alert('Feedback uploaded successfully!');
-                feedbackFileName.textContent = 'No file selected';
-                feedbackFile.value = '';
-            };
+                selectedStudent = mobile;
+                loadStudentCopy();
+                
+                // Enable feedback upload
+                document.getElementById('uploadFeedbackBtn').disabled = false;
+            }
             
-            reader.readAsDataURL(file);
+            document.getElementById('selectBtn').addEventListener('click', selectStudent);
+            
+            // Load student's copies
+            function loadStudentCopy() {
+                try {
+                    const studentCopies = JSON.parse(localStorage.getItem('studentCopies')) || {};
+                    const files = studentCopies[selectedStudent] || [];
+                    const studentInfo = JSON.parse(localStorage.getItem('studentInfo')) || {};
+                    const student = studentInfo[selectedStudent];
+                    
+                    const container = document.getElementById('copyContainer');
+                    container.innerHTML = '';
+                    
+                    if (files.length === 0) {
+                        container.innerHTML = '<p class="placeholder">No test copies found for this student</p>';
+                    } else {
+                        // Show student info
+                        const studentInfoEl = document.createElement('div');
+                        studentInfoEl.className = 'student-info';
+                        studentInfoEl.innerHTML = `
+                            <p><strong>Student:</strong> ${student ? student.name : 'Unknown'}</p>
+                            <p><strong>Mobile:</strong> ${selectedStudent}</p>
+                        `;
+                        container.appendChild(studentInfoEl);
+                        
+                        // Show files
+                        files.forEach(file => {
+                            const fileEl = document.createElement('div');
+                            fileEl.className = 'copy-item';
+                            
+                            if (file.data.startsWith('data:image')) {
+                                const img = document.createElement('img');
+                                img.src = file.data;
+                                fileEl.appendChild(img);
+                            } else {
+                                const link = document.createElement('a');
+                                link.href = file.data;
+                                link.download = file.fileName;
+                                link.textContent = `Download: ${file.fileName}`;
+                                fileEl.appendChild(link);
+                            }
+                            
+                            const info = document.createElement('div');
+                            info.className = 'copy-info';
+                            info.innerHTML = `
+                                <p><strong>File:</strong> ${file.fileName}</p>
+                                <p><strong>Uploaded:</strong> ${new Date(file.timestamp).toLocaleString()}</p>
+                            `;
+                            fileEl.appendChild(info);
+                            
+                            container.appendChild(fileEl);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading student copies:', error);
+                    document.getElementById('copyContainer').innerHTML = '<p class="placeholder">Error loading files</p>';
+                }
+            }
+            
+            // Feedback file selection
+            const feedbackFile = document.getElementById('feedbackFile');
+            const feedbackFileName = document.getElementById('feedbackFileName');
+            const uploadFeedbackBtn = document.getElementById('uploadFeedbackBtn');
+            
+            feedbackFile.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    feedbackFileName.textContent = e.target.files[0].name;
+                } else {
+                    feedbackFileName.textContent = 'No file selected';
+                }
+            });
+            
+            // Upload feedback
+            uploadFeedbackBtn.addEventListener('click', () => {
+                if (!selectedStudent) {
+                    alert('Please select a student first');
+                    return;
+                }
+                
+                if (feedbackFile.files.length === 0) {
+                    alert('Please select a feedback file');
+                    return;
+                }
+                
+                const file = feedbackFile.files[0];
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        // Save to localStorage
+                        const feedbacks = JSON.parse(localStorage.getItem('teacherFeedbacks')) || {};
+                        feedbacks[selectedStudent] = {
+                            fileName: file.name,
+                            data: e.target.result,
+                            timestamp: new Date().toISOString()
+                        };
+                        localStorage.setItem('teacherFeedbacks', JSON.stringify(feedbacks));
+                        
+                        alert('Feedback uploaded successfully!');
+                        feedbackFileName.textContent = 'No file selected';
+                        feedbackFile.value = '';
+                    } catch (error) {
+                        console.error('Error saving feedback:', error);
+                        alert('Error uploading feedback. Please try again.');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    console.error('Error reading feedback file');
+                    alert('Error reading feedback file. Please try again.');
+                };
+                
+                reader.readAsDataURL(file);
+            });
+            
+            // Logout
+            document.getElementById('logoutBtn').addEventListener('click', () => {
+                localStorage.removeItem('currentUser');
+                window.location.href = 'index.html';
+            });
+            
+            // Initial load
+            loadStudentsList();
         });
-        
-        // Logout
-        document.getElementById('logoutBtn').addEventListener('click', () => {
-            localStorage.removeItem('currentUser');
-            window.location.href = 'index.html';
-        });
-        
-        // Initial load
-        loadStudentsList();
     </script>
 </body>
 </html>
